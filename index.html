@@ -15,14 +15,12 @@
         .header { text-align: center; margin-bottom: 30px; }
         .header h2 { margin: 0; display: flex; align-items: center; justify-content: center; gap: 10px; color: #0f172a; }
         
-        /* Kartu Upload */
         .upload-card {
             background: var(--card-bg); padding: 25px; border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); text-align: center;
             max-width: 400px; margin: 0 auto 30px auto; border: 2px dashed #cbd5e1;
         }
 
-        /* Progress Bar */
         #progressArea { display: none; margin: 20px 0; text-align: left; }
         .progress-info { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 8px; }
         .progress-container { width: 100%; background: #e2e8f0; border-radius: 10px; height: 14px; overflow: hidden; }
@@ -37,13 +35,12 @@
         button:hover { background: var(--primary-hover); }
         button:disabled { background: #94a3b8; cursor: not-allowed; }
 
-        /* Tabel Data */
         .list-card { background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th { background: #f8fafc; padding: 12px; text-align: left; font-size: 0.75rem; color: #64748b; border-bottom: 1px solid #e2e8f0; }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; vertical-align: middle; }
         
-        .col-name { width: 50%; } .col-date { width: 35%; } .col-action { width: 15%; text-align: center; }
+        .col-name { width: 55%; } .col-date { width: 30%; } .col-action { width: 15%; text-align: center; }
         
         .file-info-wrapper { display: flex; align-items: center; gap: 12px; }
         .file-icon-box { display: flex; align-items: center; justify-content: center; min-width: 32px; }
@@ -51,13 +48,13 @@
         .file-name { font-weight: 600; color: #334155; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .file-size { font-size: 0.75rem; color: #94a3b8; }
         
-        .btn-action { background: none; color: #64748b; padding: 6px; border-radius: 6px; transition: 0.2s; cursor: pointer; border:none; }
+        .btn-action { background: none; color: #64748b; padding: 6px; border-radius: 6px; transition: 0.2s; cursor: pointer; border:none; text-decoration: none; }
         .btn-action:hover { color: var(--primary); background: #f0fff4; }
         .btn-delete:hover { color: var(--danger); background: #fef2f2; }
         
         #status { font-size: 0.85rem; margin-top: 10px; font-weight: 700; }
 
-        @media (max-width: 600px) { .col-name { width: 45%; } .col-date { width: 40%; } }
+        @media (max-width: 600px) { .col-name { width: 50%; } .col-date { width: 35%; } }
     </style>
 </head>
 <body>
@@ -68,12 +65,12 @@
     </div>
 
     <div class="upload-card">
-        <h4><i data-lucide="upload-cloud" style="width:18px"></i> Kirim File (Max 50MB)</h4>
+        <h4><i data-lucide="upload-cloud" style="width:18px"></i> Upload File (Max 50MB)</h4>
         <input type="file" id="fileInput">
         
         <div id="progressArea">
             <div class="progress-info">
-                <span>Mengirim...</span>
+                <span>Mengupload... Mohon Tunggu...</span>
                 <span id="percentText">0%</span>
             </div>
             <div class="progress-container">
@@ -82,8 +79,7 @@
         </div>
 
         <button id="uploadBtn" onclick="handleUpload()">
-            <i data-lucide="send"></i> Mulai Upload
-        </button>
+            <i data-lucide="send"></i> Upload </button>
         <p id="status"></p>
     </div>
 
@@ -105,7 +101,6 @@
     const bucketName = 'uploads';
     const MASTER_PASS = 'duamedan';
 
-    // 1. Fungsi menentukan Icon
     function getFileIcon(fileName) {
         const ext = fileName.split('.').pop().toLowerCase();
         if (ext === 'pdf') return '<i data-lucide="file-text" style="color:#e11d48"></i>'; 
@@ -120,7 +115,6 @@
         return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + ['Bytes', 'KB', 'MB', 'GB'][i];
     }
 
-    // 2. Fungsi List File
     async function listFiles() {
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const { data, error } = await supabaseClient.storage.from(bucketName).list('', {
@@ -137,9 +131,13 @@
         
         data.forEach(file => {
             if (file.name === '.emptyFolderPlaceholder') return;
-            const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${file.name}`;
-            const dateStr = new Date(file.created_at).toLocaleString('id-ID', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
             
+            const firstDashIndex = file.name.indexOf('-');
+            const originalName = firstDashIndex !== -1 ? file.name.substring(firstDashIndex + 1) : file.name;
+
+            const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${file.name}?download=${encodeURIComponent(originalName)}`;
+            
+            const dateStr = new Date(file.created_at).toLocaleString('id-ID', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
             const iconHtml = getFileIcon(file.name);
 
             listContainer.innerHTML += `
@@ -148,7 +146,7 @@
                         <div class="file-info-wrapper">
                             <div class="file-icon-box">${iconHtml}</div>
                             <div style="overflow:hidden">
-                                <span class="file-name">${file.name}</span>
+                                <span class="file-name" title="${originalName}">${originalName}</span>
                                 <span class="file-size">${formatSize(file.metadata.size)}</span>
                             </div>
                         </div>
@@ -156,17 +154,15 @@
                     <td class="col-date" style="color:#64748b">${dateStr}</td>
                     <td class="col-action">
                         <div style="display:flex; justify-content:center; gap:8px">
-                            <a href="${publicUrl}" target="_blank" class="btn-action"><i data-lucide="download" style="width:18px"></i></a>
-                            <button class="btn-action btn-delete" onclick="handleDelete('${file.name}')"><i data-lucide="trash-2" style="width:18px"></i></button>
+                            <a href="${publicUrl}" class="btn-action" title="Download"><i data-lucide="download" style="width:18px"></i></a>
+                            <button class="btn-action btn-delete" onclick="handleDelete('${file.name}')" title="Hapus"><i data-lucide="trash-2" style="width:18px"></i></button>
                         </div>
                     </td>
                 </tr>`;
         });
-        // Render semua icon Lucide setelah HTML dimasukkan
         lucide.createIcons();
     }
 
-    // 3. Fungsi Upload XHR
     function handleUpload() {
         const fileInput = document.getElementById('fileInput');
         if (fileInput.files.length === 0) return alert("Pilih file!");
@@ -233,9 +229,7 @@
             listFiles();
         }
     }
-
-    // Inisialisasi awal
-    lucide.createIcons();
+    
     listFiles();
 </script>
 </body>
