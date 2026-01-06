@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DFM Medan</title>
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/814/814848.png" type="image/png">
+    <title>DFM MEDAN</title>
+    <link rel="icon" href="logo.png" type="image/png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #3ecf8e; --primary-hover: #36b87d; --danger: #ef4444; --bg: #f1f5f9; --card-bg: #ffffff; }
-        body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background-color: var(--bg); color: #1e293b; }
-        .container { max-width: 850px; margin: 0 auto; }
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background-color: var(--bg); color: #1e293b; display: flex; flex-direction: column; min-height: 100vh; }
+        .container { max-width: 850px; margin: 0 auto; flex: 1; width: 100%; }
+        
         .header { text-align: center; margin-bottom: 30px; }
-        .header h2 { margin: 0; display: flex; align-items: center; justify-content: center; gap: 10px; color: #0f172a; }
+        .logo-img { width: 180px; height: auto; margin-bottom: 10px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+        .header h2 { margin: 0; display: flex; align-items: center; justify-content: center; gap: 10px; color: #ee9f59; }
         
         .upload-card {
             background: var(--card-bg); padding: 25px; border-radius: 12px;
@@ -22,9 +24,9 @@
         }
 
         #progressArea { display: none; margin: 20px 0; text-align: left; }
-        .progress-info { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 8px; }
+        .progress-info { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: #ed3609; margin-bottom: 8px; }
         .progress-container { width: 100%; background: #e2e8f0; border-radius: 10px; height: 14px; overflow: hidden; }
-        .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.1s linear; box-shadow: 0 0 10px rgba(62, 207, 142, 0.4); }
+        .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.1s linear; box-shadow: 0 0 10px rgba(68, 178, 128, 0.4); }
 
         input[type="file"] { display: block; width: 100%; margin: 0 auto 15px auto; font-size: 0.8rem; color: #64748b; }
         button { 
@@ -41,10 +43,8 @@
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; vertical-align: middle; }
         
         .col-name { width: 55%; } .col-date { width: 30%; } .col-action { width: 15%; text-align: center; }
-        
         .file-info-wrapper { display: flex; align-items: center; gap: 12px; }
         .file-icon-box { display: flex; align-items: center; justify-content: center; min-width: 32px; }
-        
         .file-name { font-weight: 600; color: #334155; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .file-size { font-size: 0.75rem; color: #94a3b8; }
         
@@ -54,6 +54,16 @@
         
         #status { font-size: 0.85rem; margin-top: 10px; font-weight: 700; }
 
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 25px 0;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+        }
+        .footer b { color: #64748b; }
+
         @media (max-width: 600px) { .col-name { width: 50%; } .col-date { width: 35%; } }
     </style>
 </head>
@@ -61,16 +71,17 @@
 
 <div class="container">
     <div class="header">
-        <h2><i data-lucide="shield-check"></i> Dua Farma Cabang Medan</h2>
+        <img src="hero.png" alt="Logo Dua Farma" class="logo-img">
+        <h2>Dua Farma Cabang Medan</h2>
     </div>
 
     <div class="upload-card">
-        <h4><i data-lucide="upload-cloud" style="width:18px"></i> Upload File (Max 50MB)</h4>
+        <h4 style="color: #3b50f0;"><i data-lucide="upload-cloud" style="width:18px"></i> Upload File (Max 50MB)</h4>
         <input type="file" id="fileInput">
         
         <div id="progressArea">
             <div class="progress-info">
-                <span>Mengupload... Mohon Tunggu...</span>
+                <span>Mohon Tunggu...</span>
                 <span id="percentText">0%</span>
             </div>
             <div class="progress-container">
@@ -95,11 +106,18 @@
     </div>
 </div>
 
+<div class="footer">
+    &copy; <span id="year"></span> <b>Dua Farma Cabang Medan</b>. Created by <b>Mukhtadi Arijuddin</b>
+</div>
+
 <script>
     const SUPABASE_URL = 'https://fxkxlvbopaqodsnehhey.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_qPBvak74R9PX4pbgWgCJ1w_1wy5qXXo';
     const bucketName = 'uploads';
     const MASTER_PASS = 'duamedan';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    document.getElementById('year').textContent = new Date().getFullYear();
 
     function getFileIcon(fileName) {
         const ext = fileName.split('.').pop().toLowerCase();
@@ -116,7 +134,6 @@
     }
 
     async function listFiles() {
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const { data, error } = await supabaseClient.storage.from(bucketName).list('', {
             sortBy: { column: 'created_at', order: 'desc' }
         });
@@ -178,6 +195,7 @@
         const progArea = document.getElementById('progressArea');
         const progBar = document.getElementById('progressBar');
         const percText = document.getElementById('percentText');
+        
         const fileName = `${Date.now()}-${file.name}`;
 
         btn.disabled = true;
@@ -224,12 +242,12 @@
         const pass = prompt("Password Hapus:");
         if (pass !== MASTER_PASS) return alert("Password Salah!");
         if (confirm("Hapus file ini?")) {
-            const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             await supabaseClient.storage.from(bucketName).remove([name]);
             listFiles();
         }
     }
-    
+
+    lucide.createIcons();
     listFiles();
 </script>
 </body>
