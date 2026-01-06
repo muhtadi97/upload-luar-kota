@@ -8,13 +8,14 @@
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 30px auto; padding: 20px; background: #f4f7f6; }
         .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        input[type="file"] { margin: 10px 0; }
-        button { padding: 10px 20px; background: #3ecf8e; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        input[type="file"] { margin: 10px 0; display: block; }
+        button { padding: 10px 20px; background: #3ecf8e; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         button:disabled { background: #ccc; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; margin-top: 10px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #3ecf8e; color: white; }
-        .btn-download { color: #007bff; text-decoration: none; font-weight: bold; }
+        .btn-download { background: #007bff; color: white; padding: 5px 10px; text-decoration: none; border-radius: 4px; font-size: 13px; }
+        #status { font-weight: bold; color: #555; }
     </style>
 </head>
 <body>
@@ -22,7 +23,7 @@
 <div class="card">
     <h2>Upload File</h2>
     <input type="file" id="fileInput">
-    <button id="uploadBtn" onclick="uploadFile()">Upload</button>
+    <button id="uploadBtn" onclick="uploadFile()">Mulai Upload</button>
     <p id="status"></p>
 </div>
 
@@ -36,38 +37,52 @@
             </tr>
         </thead>
         <tbody id="fileList">
-            </tbody>
+            <tr><td colspan="2">Memuat data...</td></tr>
+        </tbody>
     </table>
 </div>
 
 <script>
-    // KONFIGURASI (Ganti dengan milikmu)
+    // KONFIGURASI
     const SUPABASE_URL = 'https://fxkxlvbopaqodsnehhey.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_qPBvak74R9PX4pbgWgCJ1w_1wy5qXXo';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+    
+    // Perbaikan: gunakan nama variabel supabaseClient agar tidak konflik dengan library
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const bucketName = 'uploads';
 
-    // 1. FUNGSI AMBIL DAFTAR FILE (DOWNLOAD)
+    // 1. FUNGSI AMBIL DAFTAR FILE
     async function listFiles() {
-        const { data, error } = await supabase.storage.from(bucketName).list();
+        const { data, error } = await supabaseClient.storage.from(bucketName).list('', {
+            limit: 100,
+            offset: 0,
+            sortBy: { column: 'created_at', order: 'desc' },
+        });
 
         if (error) {
-            console.error(error);
+            console.error("Gagal mengambil daftar:", error.message);
+            document.getElementById('fileList').innerHTML = '<tr><td colspan="2">Gagal memuat daftar file.</td></tr>';
             return;
         }
 
         const listContainer = document.getElementById('fileList');
         listContainer.innerHTML = '';
 
+        if (data.length === 0) {
+            listContainer.innerHTML = '<tr><td colspan="2">Belum ada file di server.</td></tr>';
+            return;
+        }
+
         data.forEach(file => {
-            // Ambil URL Publik untuk download
-            const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(file.name);
+            // Abaikan file sistem placeholder jika ada
+            if (file.name === '.emptyFolderPlaceholder') return;
+
+            const { data: urlData } = supabaseClient.storage.from(bucketName).getPublicUrl(file.name);
             
             listContainer.innerHTML += `
                 <tr>
                     <td>${file.name}</td>
-                    <td><a href="${urlData.publicUrl}" class="btn-download" target="_blank" download>Download</a></td>
+                    <td><a href="${urlData.publicUrl}" class="btn-download" target="_blank">Download</a></td>
                 </tr>
             `;
         });
@@ -82,21 +97,23 @@
         if (fileInput.files.length === 0) return alert("Pilih file dulu!");
 
         const file = fileInput.files[0];
-        const fileName = `${Date.now()}-${file.name}`; // Tambah timestamp agar nama file unik
+        // Tips: Menggunakan nama asli file, atau tambahkan prefix agar tidak bentrok
+        const fileName = `${Date.now()}-${file.name}`; 
 
         btn.disabled = true;
         status.innerText = "Sedang mengupload...";
 
-        const { data, error } = await supabase.storage
+        const { data, error } = await supabaseClient.storage
             .from(bucketName)
             .upload(fileName, file);
 
         if (error) {
             alert("Gagal upload: " + error.message);
+            status.innerText = "Upload gagal.";
         } else {
             status.innerText = "Upload berhasil!";
             fileInput.value = '';
-            listFiles(); // Refresh daftar file
+            listFiles(); // Refresh daftar
         }
         btn.disabled = false;
     }
