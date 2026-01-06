@@ -21,14 +21,13 @@
             max-width: 400px; margin: 0 auto 30px auto; border: 2px dashed #cbd5e1;
         }
 
-        /* PROGRESS BAR FIX */
         #progressArea { display: none; margin: 20px 0; text-align: left; }
         .progress-info { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 8px; }
-        .progress-container { width: 100%; background: #e2e8f0; border-radius: 10px; height: 14px; overflow: hidden; position: relative; }
+        .progress-container { width: 100%; background: #e2e8f0; border-radius: 10px; height: 14px; overflow: hidden; }
         .progress-bar { 
             width: 0%; height: 100%; background: var(--primary); 
-            transition: width 0.3s ease-out; /* Memberikan efek halus saat bergeser */
-            box-shadow: 0 0 10px rgba(62, 207, 142, 0.5);
+            transition: width 0.1s linear; /* Lebih responsif */
+            box-shadow: 0 0 10px rgba(62, 207, 142, 0.4);
         }
 
         input[type="file"] { display: block; width: 100%; margin: 0 auto 15px auto; font-size: 0.8rem; color: #64748b; }
@@ -40,7 +39,6 @@
         button:hover { background: var(--primary-hover); }
         button:disabled { background: #94a3b8; cursor: not-allowed; }
 
-        /* TABEL */
         .list-card { background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th { background: #f8fafc; padding: 12px; text-align: left; font-size: 0.75rem; color: #64748b; border-bottom: 1px solid #e2e8f0; }
@@ -69,7 +67,7 @@
         
         <div id="progressArea">
             <div class="progress-info">
-                <span id="progLabel">Mengunggah...</span>
+                <span>Mengirim...</span>
                 <span id="percentText">0%</span>
             </div>
             <div class="progress-container">
@@ -98,7 +96,6 @@
 <script>
     const SUPABASE_URL = 'https://fxkxlvbopaqodsnehhey.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_qPBvak74R9PX4pbgWgCJ1w_1wy5qXXo';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const bucketName = 'uploads';
     const MASTER_PASS = 'duamedan';
 
@@ -109,23 +106,30 @@
     }
 
     async function listFiles() {
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const { data, error } = await supabaseClient.storage.from(bucketName).list('', {
             sortBy: { column: 'created_at', order: 'desc' }
         });
-        if (error) return;
+        
         const listContainer = document.getElementById('fileList');
+        if (error) {
+            listContainer.innerHTML = '<tr><td colspan="3" style="text-align:center">Gagal memuat data.</td></tr>';
+            return;
+        }
+
         listContainer.innerHTML = data.length === 0 ? '<tr><td colspan="3" style="text-align:center">Tidak ada file.</td></tr>' : '';
         data.forEach(file => {
             if (file.name === '.emptyFolderPlaceholder') return;
-            const { data: urlData } = supabaseClient.storage.from(bucketName).getPublicUrl(file.name);
+            const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucketName}/${file.name}`;
             const dateStr = new Date(file.created_at).toLocaleString('id-ID', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+            
             listContainer.innerHTML += `
                 <tr>
                     <td class="col-name"><span class="file-name">${file.name}</span><span class="file-size">${formatSize(file.metadata.size)}</span></td>
                     <td class="col-date" style="color:#64748b">${dateStr}</td>
                     <td class="col-action">
                         <div style="display:flex; justify-content:center; gap:8px">
-                            <a href="${urlData.publicUrl}" target="_blank" class="btn-action"><i data-lucide="download" style="width:16px"></i></a>
+                            <a href="${publicUrl}" target="_blank" class="btn-action"><i data-lucide="download" style="width:16px"></i></a>
                             <button class="btn-action btn-delete" onclick="handleDelete('${file.name}')"><i data-lucide="trash-2" style="width:16px"></i></button>
                         </div>
                     </td>
@@ -134,7 +138,7 @@
         lucide.createIcons();
     }
 
-    async function handleUpload() {
+    function handleUpload() {
         const fileInput = document.getElementById('fileInput');
         if (fileInput.files.length === 0) return alert("Pilih file dulu!");
 
@@ -151,48 +155,55 @@
         const percText = document.getElementById('percentText');
         const fileName = `${Date.now()}-${file.name}`;
 
-        // Inisialisasi UI
         btn.disabled = true;
         status.innerText = "";
         progArea.style.display = "block";
         progBar.style.width = "0%";
         percText.innerText = "0%";
 
-        // EKSEKUSI UPLOAD
-        const { data, error } = await supabaseClient.storage
-            .from(bucketName)
-            .upload(fileName, file, {
-                onUploadProgress: (progress) => {
-                    const p = Math.round((progress.loaded / progress.total) * 100);
-                    // Pastikan DOM sudah siap menerima update
-                    requestAnimationFrame(() => {
-                        progBar.style.width = p + "%";
-                        percText.innerText = p + "%";
-                    });
+        // GUNAKAN XHR MANUAL UNTUK MONITOR PROGRESS YANG AKURAT
+        const xhr = new XMLHttpRequest();
+        const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${bucketName}/${fileName}`;
+
+        xhr.upload.addEventListener("progress", (event) => {
+            if (event.lengthComputable) {
+                const percent = Math.round((event.loaded / event.total) * 100);
+                progBar.style.width = percent + "%";
+                percText.innerText = percent + "%";
+            }
+        });
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200 || xhr.status === 201) {
+                    status.innerText = "✅ Berhasil Diunggah!";
+                    status.style.color = "green";
+                    fileInput.value = '';
+                    listFiles();
+                } else {
+                    alert("Gagal: " + xhr.statusText);
+                    status.innerText = "❌ Gagal";
                 }
-            });
+                
+                setTimeout(() => {
+                    progArea.style.display = "none";
+                    status.innerText = "";
+                    btn.disabled = false;
+                }, 3000);
+            }
+        };
 
-        if (error) {
-            alert("Gagal: " + error.message);
-            progArea.style.display = "none";
-        } else {
-            status.innerText = "✅ File Berhasil Terkirim!";
-            status.style.color = "green";
-            fileInput.value = '';
-            listFiles();
-        }
-
-        setTimeout(() => {
-            progArea.style.display = "none";
-            status.innerText = "";
-            btn.disabled = false;
-        }, 3000);
+        xhr.open("POST", uploadUrl, true);
+        xhr.setRequestHeader("Authorization", `Bearer ${SUPABASE_KEY}`);
+        xhr.setRequestHeader("apikey", SUPABASE_KEY);
+        xhr.send(file);
     }
 
     async function handleDelete(name) {
         const pass = prompt("Password Hapus:");
         if (pass !== MASTER_PASS) return alert("Password Salah!");
         if (confirm("Hapus file ini?")) {
+            const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             await supabaseClient.storage.from(bucketName).remove([name]);
             listFiles();
         }
