@@ -4,118 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DFM Medan</title>
-    
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/814/814848.png" type="image/png">
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
     <style>
-        :root {
-            --primary: #3ecf8e;
-            --primary-hover: #36b87d;
-            --danger: #ef4444;
-            --bg: #f1f5f9;
-            --card-bg: #ffffff;
-        }
-
-        body { 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; padding: 20px; 
-            background-color: var(--bg); 
-            color: #1e293b; 
-        }
-
+        :root { --primary: #3ecf8e; --primary-hover: #36b87d; --danger: #ef4444; --bg: #f1f5f9; --card-bg: #ffffff; }
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background-color: var(--bg); color: #1e293b; }
         .container { max-width: 850px; margin: 0 auto; }
-
         .header { text-align: center; margin-bottom: 30px; }
-        .header h2 { margin: 0; color: #0f172a; display: flex; align-items: center; justify-content: center; gap: 10px; }
-
+        .header h2 { margin: 0; display: flex; align-items: center; justify-content: center; gap: 10px; color: #0f172a; }
+        
         .upload-card {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 400px;
-            margin: 0 auto 30px auto;
-            border: 2px dashed #cbd5e1;
+            background: var(--card-bg); padding: 25px; border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); text-align: center;
+            max-width: 400px; margin: 0 auto 30px auto; border: 2px dashed #cbd5e1;
         }
 
-        .upload-card h4 { margin: 0 0 15px 0; color: #64748b; font-size: 0.9rem; }
+        /* Progress Bar Baru - Lebih Terlihat */
+        .progress-area { display: none; margin: 20px 0; }
+        .progress-container { width: 100%; background: #e2e8f0; border-radius: 50px; height: 12px; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.1s linear; }
+        .progress-info { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 5px; }
 
-        input[type="file"] { 
-            display: block; width: 100%; margin: 0 auto 15px auto; 
-            font-size: 0.8rem; color: #64748b;
-            text-align: center;
-        }
-
-        /* Progress Bar Styles */
-        .progress-container {
-            width: 100%;
-            background-color: #e2e8f0;
-            border-radius: 10px;
-            margin: 15px 0;
-            display: none; /* Hidden by default */
-            overflow: hidden;
-        }
-
-        .progress-bar {
-            width: 0%;
-            height: 10px;
-            background-color: var(--primary);
-            transition: width 0.2s ease;
-        }
-
-        .progress-text {
-            font-size: 0.75rem;
-            color: #64748b;
-            margin-bottom: 5px;
-            display: block;
-        }
-
+        input[type="file"] { display: block; width: 100%; margin: 0 auto 15px auto; font-size: 0.8rem; color: #64748b; }
         button { 
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 10px 20px; background: var(--primary); 
-            color: white; border: none; border-radius: 6px; 
-            cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: 0.2s;
+            display: inline-flex; align-items: center; gap: 6px; padding: 12px 24px; 
+            background: var(--primary); color: white; border: none; border-radius: 8px; 
+            cursor: pointer; font-weight: 700; transition: 0.2s;
         }
+        button:hover { background: var(--primary-hover); transform: scale(1.02); }
+        button:disabled { background: #94a3b8; transform: none; }
 
-        button:hover { background: var(--primary-hover); }
-        button:disabled { background: #94a3b8; }
-
-        .list-card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
+        .list-card { background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th { background: #f8fafc; padding: 12px; text-align: left; font-size: 0.75rem; color: #64748b; border-bottom: 1px solid #e2e8f0; }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; word-wrap: break-word; }
-
-        .col-name { width: 50%; }
-        .col-date { width: 35%; }
-        .col-action { width: 15%; text-align: center; }
-
-        .file-name { font-weight: 600; color: #334155; display: block; margin-bottom: 2px; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
+        .col-name { width: 50%; } .col-date { width: 35%; } .col-action { width: 15%; text-align: center; }
+        .file-name { font-weight: 600; color: #334155; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .file-size { font-size: 0.75rem; color: #94a3b8; }
-        .file-date { color: #64748b; font-size: 0.8rem; }
-
-        .btn-action { background: none; color: #64748b; padding: 5px; border-radius: 4px; transition: 0.2s; }
+        .btn-action { background: none; color: #64748b; padding: 6px; border-radius: 6px; }
         .btn-action:hover { color: var(--primary); background: #f0fff4; }
         .btn-delete:hover { color: var(--danger); background: #fef2f2; }
+        #status { font-size: 0.85rem; margin-top: 10px; font-weight: 700; }
 
-        #status { font-size: 0.8rem; margin-top: 10px; font-weight: 600; }
-
-        @media (max-width: 600px) {
-            body { padding: 10px; }
-            .col-name { width: 45%; }
-            .col-date { width: 40%; }
-            th, td { padding: 10px 8px; }
-        }
+        @media (max-width: 600px) { .col-name { width: 45%; } .col-date { width: 40%; } }
     </style>
 </head>
 <body>
@@ -126,18 +59,21 @@
     </div>
 
     <div class="upload-card">
-        <h4><i data-lucide="cloud-upload" style="width:18px"></i> Upload File (Max 50MB)</h4>
+        <h4><i data-lucide="upload-cloud" style="width:18px"></i> Upload File (Maks 50MB)</h4>
         <input type="file" id="fileInput">
         
-        <div id="uploadInfo" style="display: none;">
-            <span class="progress-text" id="progressPercent">0%</span>
+        <div class="progress-area" id="progressArea">
+            <div class="progress-info">
+                <span>Mengupload...</span>
+                <span id="percentText">0%</span>
+            </div>
             <div class="progress-container">
                 <div class="progress-bar" id="progressBar"></div>
             </div>
         </div>
 
         <button id="uploadBtn" onclick="handleUpload()">
-            <i data-lucide="plus"></i> Upload
+            <i data-lucide="send"></i> Kirim File
         </button>
         <p id="status"></p>
     </div>
@@ -147,12 +83,12 @@
             <thead>
                 <tr>
                     <th class="col-name">Nama File</th>
-                    <th class="col-date">Tanggal Upload</th>
+                    <th class="col-date">Waktu Upload</th>
                     <th class="col-action">Aksi</th>
                 </tr>
             </thead>
             <tbody id="fileList">
-                <tr><td colspan="3" style="text-align:center">Memuat data...</td></tr>
+                <tr><td colspan="3" style="text-align:center">Memuat database...</td></tr>
             </tbody>
         </table>
     </div>
@@ -175,109 +111,88 @@
         const { data, error } = await supabaseClient.storage.from(bucketName).list('', {
             sortBy: { column: 'created_at', order: 'desc' }
         });
-
-        if (error) return console.error(error);
-
+        if (error) return;
         const listContainer = document.getElementById('fileList');
-        listContainer.innerHTML = data.length === 0 ? '<tr><td colspan="3" style="text-align:center">Kosong</td></tr>' : '';
-
+        listContainer.innerHTML = data.length === 0 ? '<tr><td colspan="3" style="text-align:center">Folder Kosong</td></tr>' : '';
         data.forEach(file => {
             if (file.name === '.emptyFolderPlaceholder') return;
             const { data: urlData } = supabaseClient.storage.from(bucketName).getPublicUrl(file.name);
             const dateStr = new Date(file.created_at).toLocaleString('id-ID', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
-
             listContainer.innerHTML += `
                 <tr>
-                    <td class="col-name">
-                        <span class="file-name text-truncate">${file.name}</span>
-                        <span class="file-size">${formatSize(file.metadata.size)}</span>
-                    </td>
-                    <td class="col-date">
-                        <span class="file-date">${dateStr}</span>
-                    </td>
+                    <td class="col-name"><span class="file-name">${file.name}</span><span class="file-size">${formatSize(file.metadata.size)}</span></td>
+                    <td class="col-date"><span class="file-date" style="color:#64748b">${dateStr}</span></td>
                     <td class="col-action">
-                        <div style="display:flex; justify-content:center; gap:5px">
-                            <a href="${urlData.publicUrl}" target="_blank" class="btn-action" title="Download">
-                                <i data-lucide="download" style="width:16px"></i>
-                            </a>
-                            <button class="btn-action btn-delete" onclick="handleDelete('${file.name}')" title="Hapus">
-                                <i data-lucide="trash-2" style="width:16px"></i>
-                            </button>
+                        <div style="display:flex; justify-content:center; gap:8px">
+                            <a href="${urlData.publicUrl}" target="_blank" class="btn-action" title="Unduh"><i data-lucide="download" style="width:16px"></i></a>
+                            <button class="btn-action btn-delete" onclick="handleDelete('${file.name}')" title="Hapus"><i data-lucide="trash-2" style="width:16px"></i></button>
                         </div>
                     </td>
-                </tr>
-            `;
+                </tr>`;
         });
         lucide.createIcons();
     }
 
     async function handleUpload() {
         const fileInput = document.getElementById('fileInput');
-        if (fileInput.files.length === 0) return alert("Pilih file!");
+        if (fileInput.files.length === 0) return alert("Pilih file terlebih dahulu!");
 
         const file = fileInput.files[0];
-        
-        // VALIDASI 50MB
-        const MAX_SIZE = 50 * 1024 * 1024;
-        if (file.size > MAX_SIZE) {
-            return alert("Ukuran file melebihi 50MB! Silakan kompres file Anda terlebih dahulu.");
-        }
+        if (file.size > 50 * 1024 * 1024) return alert("File terlalu besar (Maks 50MB)!");
 
-        const pass = prompt("Masukkan Password untuk Upload:");
+        const pass = prompt("Masukkan Password:");
         if (pass !== MASTER_PASS) return alert("Password Salah!");
 
         const btn = document.getElementById('uploadBtn');
         const status = document.getElementById('status');
-        const uploadInfo = document.getElementById('uploadInfo');
-        const progressBar = document.getElementById('progressBar');
-        const progressPercent = document.getElementById('progressPercent');
+        const progArea = document.getElementById('progressArea');
+        const progBar = document.getElementById('progressBar');
+        const percText = document.getElementById('percentText');
         const fileName = `${Date.now()}-${file.name}`;
 
         btn.disabled = true;
         status.innerText = "";
-        uploadInfo.style.display = "block";
-        document.querySelector('.progress-container').style.display = "block";
+        progArea.style.display = "block";
+        progBar.style.width = "0%";
+        percText.innerText = "0%";
 
-        const { error } = await supabaseClient.storage.from(bucketName).upload(fileName, file, {
-            onUploadProgress: (progress) => {
-                const percent = Math.round((progress.loaded / progress.total) * 100);
-                progressBar.style.width = percent + "%";
-                progressPercent.innerText = percent + "%";
+        const { data, error } = await supabaseClient.storage.from(bucketName).upload(fileName, file, {
+            onUploadProgress: (evt) => {
+                const percent = Math.round((evt.loaded / evt.total) * 100);
+                progBar.style.width = percent + "%";
+                percText.innerText = percent + "%";
             }
         });
 
         if (error) {
-            alert("Gagal: " + error.message);
-            status.innerText = "❌ Upload Gagal";
+            alert("Error: " + error.message);
+            status.innerText = "❌ Gagal";
+            status.style.color = "red";
         } else {
             status.innerText = "✅ Berhasil!";
+            status.style.color = "green";
             fileInput.value = '';
             listFiles();
         }
 
-        // Reset UI setelah 3 detik
         setTimeout(() => {
-            uploadInfo.style.display = "none";
-            progressBar.style.width = "0%";
+            progArea.style.display = "none";
             status.innerText = "";
             btn.disabled = false;
         }, 3000);
     }
 
     async function handleDelete(name) {
-        const pass = prompt("Masukkan Password untuk Menghapus:");
+        const pass = prompt("Password Hapus:");
         if (pass !== MASTER_PASS) return alert("Password Salah!");
-
-        if (confirm("Hapus permanen file ini?")) {
-            const { error } = await supabaseClient.storage.from(bucketName).remove([name]);
-            if (error) alert(error.message);
-            else listFiles();
+        if (confirm("Hapus file ini?")) {
+            await supabaseClient.storage.from(bucketName).remove([name]);
+            listFiles();
         }
     }
 
     lucide.createIcons();
     listFiles();
 </script>
-
 </body>
 </html>
