@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengiriman Luar Kota - Medan</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 30px auto; padding: 20px; background: #f4f7f6; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input[type="file"] { margin: 10px 0; }
+        button { padding: 10px 20px; background: #3ecf8e; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:disabled { background: #ccc; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #3ecf8e; color: white; }
+        .btn-download { color: #007bff; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Upload File</h2>
+    <input type="file" id="fileInput">
+    <button id="uploadBtn" onclick="uploadFile()">Upload</button>
+    <p id="status"></p>
+</div>
+
+<div class="card">
+    <h3>Daftar File:</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Nama File</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="fileList">
+            </tbody>
+    </table>
+</div>
+
+<script>
+    // KONFIGURASI (Ganti dengan milikmu)
+    const SUPABASE_URL = 'https://fxkxlvbopaqodsnehhey.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_qPBvak74R9PX4pbgWgCJ1w_1wy5qXXo';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const bucketName = 'uploads';
+
+    // 1. FUNGSI AMBIL DAFTAR FILE (DOWNLOAD)
+    async function listFiles() {
+        const { data, error } = await supabase.storage.from(bucketName).list();
+
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        const listContainer = document.getElementById('fileList');
+        listContainer.innerHTML = '';
+
+        data.forEach(file => {
+            // Ambil URL Publik untuk download
+            const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(file.name);
+            
+            listContainer.innerHTML += `
+                <tr>
+                    <td>${file.name}</td>
+                    <td><a href="${urlData.publicUrl}" class="btn-download" target="_blank" download>Download</a></td>
+                </tr>
+            `;
+        });
+    }
+
+    // 2. FUNGSI UPLOAD FILE
+    async function uploadFile() {
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        const btn = document.getElementById('uploadBtn');
+
+        if (fileInput.files.length === 0) return alert("Pilih file dulu!");
+
+        const file = fileInput.files[0];
+        const fileName = `${Date.now()}-${file.name}`; // Tambah timestamp agar nama file unik
+
+        btn.disabled = true;
+        status.innerText = "Sedang mengupload...";
+
+        const { data, error } = await supabase.storage
+            .from(bucketName)
+            .upload(fileName, file);
+
+        if (error) {
+            alert("Gagal upload: " + error.message);
+        } else {
+            status.innerText = "Upload berhasil!";
+            fileInput.value = '';
+            listFiles(); // Refresh daftar file
+        }
+        btn.disabled = false;
+    }
+
+    // Jalankan saat web dibuka
+    listFiles();
+</script>
+
+</body>
+</html>
